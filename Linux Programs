@@ -1,0 +1,73 @@
+import socket
+
+def start_client():
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client.connect(("127.0.0.1", 12345))
+    print("Connected to the server!")
+    try:
+        while True:
+            message = input('You: ')
+            if message.lower() == 'exit':
+                break
+            client.send(message.encode())
+            response = client.recv(1024).decode()
+            print(f'Server: {response}')
+    except KeyboardInterrupt:
+        print('\nDisconnected from the server')
+    finally:
+        client.close()
+
+if __name__ == '__main__':
+    start_client()
+
+from flask import Flask
+
+app = Flask(__name__)
+
+@app.route('/', methods = ['GET'])
+def index():
+    return 'Hello From Flask'
+
+if __name__ == '__main__':
+    app.run(debug = True)
+import socket
+import threading
+
+def handle_client(client_socket, address):
+    print(f'New Connection: {address}')
+    while True:
+        try:
+            message = client_socket.recv(1024).decode()
+            if not message:
+                break
+            print(f'{address}: {message}')
+            client_socket.send(f'Echo: {message}'.encode())
+        except ConnectionResetError:
+            break
+    print(f'Connection closed: {address}')
+    client_socket.close()
+
+def start_server():
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind(('0.0.0.0', 12345))
+    server.listen(5)
+    print('Server listening on port 12345')
+    while True:
+        client_socket, addr = server.accept()
+        thread = threading.Thread(target=handle_client, args=(client_socket, addr))
+        thread.start()
+
+if __name__ == "__main__":
+    start_server()
+
+import requests
+
+headers = {"Content-Type":"application/json"}
+
+try:
+    response = requests.get('https://api.agify.io?name=meelad', headers = headers)
+    response.raise_for_status()
+    data = response.json()
+    print(data)
+except Exception as e:
+    print('Exception: ', e)
